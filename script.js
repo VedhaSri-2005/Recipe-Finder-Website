@@ -1,4 +1,4 @@
-const searchForm = document.querySelector('form');
+const searchForm = document.querySelector('#searchForm');
 const searchInput = document.querySelector('#search');
 const resultsList = document.querySelector('#results');
 
@@ -9,35 +9,51 @@ searchForm.addEventListener('submit', (e) => {
 
 async function searchRecipes() {
     const searchValue = searchInput.value.trim();
-    const appId = '25a9d9f3'; // Replace with your Edamam app ID
-    const appKey = '852d19cb516c6f13a23f7e36906bb05a'; // Replace with your Edamam app key
+    if (!searchValue) return;
 
-    const response = await fetch(`https://api.edamam.com/search?q=${searchValue}&app_id=${appId}&app_key=${appKey}&from=0&to=10`);
+    const response = await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${searchValue}`);
 
     if (!response.ok) {
-        resultsList.innerHTML = `<p>No recipes found. Try another search term.</p>`;
+        resultsList.innerHTML = `<p>Error fetching data. Please try again.</p>`;
         return;
     }
 
     const data = await response.json();
-    displayRecipes(data.hits);
+    displayRecipes(data.meals);
 }
 
-function displayRecipes(recipes) {
+function displayRecipes(meals) {
+    if (!meals) {
+        resultsList.innerHTML = `<p>No recipes found. Try another search term.</p>`;
+        return;
+    }
+
     let html = '';
 
-    recipes.forEach((recipe) => {
+    meals.forEach((meal) => {
         html += `
         <div>
-            <img src="${recipe.recipe.image}" alt="${recipe.recipe.label}">
-            <h3>${recipe.recipe.label}</h3>
+            <img src="${meal.strMealThumb}" alt="${meal.strMeal}">
+            <h3>${meal.strMeal}</h3>
             <ul>
-                ${recipe.recipe.ingredientLines.map(ingredient => `<li>${ingredient}</li>`).join('')}
+                ${getIngredients(meal).map(ingredient => `<li>${ingredient}</li>`).join('')}
             </ul>
-            <a href="${recipe.recipe.url}" target="_blank">View Recipe</a>
+            <a href="${meal.strSource || 'https://www.themealdb.com/meal.php?c=' + meal.idMeal}" target="_blank">View Recipe</a>
         </div>
         `;
     });
 
     resultsList.innerHTML = html;
+}
+
+function getIngredients(meal) {
+    const ingredients = [];
+    for (let i = 1; i <= 20; i++) {
+        const ingredient = meal[`strIngredient${i}`];
+        const measure = meal[`strMeasure${i}`];
+        if (ingredient && ingredient.trim()) {
+            ingredients.push(`${ingredient} - ${measure}`);
+        }
+    }
+    return ingredients;
 }
